@@ -22,11 +22,12 @@ public class server {
 
     public static void main(String[] args) throws SocketException {
         System.out.println("Hello, World!");
-        server ser = new server();
-        ser.start();
-
-
-
+        try {
+            server ser = new server();
+            ser.start();
+        } catch (SocketException e) {
+            System.err.println("Unexpected error on Socket.");
+        }
     }
 
     private void start() throws SocketException {
@@ -170,8 +171,10 @@ public class server {
 
         stringBuffer.append(createString.apply(buffer));
 
-
-        return 0;
+        ByteBuffer wrap = ByteBuffer.wrap(buffer);
+        int value = wrap.getShort();
+        System.out.println("value = " + value);
+        return value;
     }
 
     private InetSocketAddress extractIPFromBuffer(DatagramSocket socket, byte[] buffer) {
