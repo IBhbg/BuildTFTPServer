@@ -1,11 +1,5 @@
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.io.*;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -13,15 +7,16 @@ import java.util.function.Function;
 public class server {
     public static final String READ_From_Folder= "/home/t-rex/Skrivbord/";
     public static final int TFTPPORT = 4970;
-    public static final int BUFSIZE = 516;
-    public static final int OP_RREAD_REQUEST = 1;
-    public static final int OP_WRQ = 2;
+    public static final int BUFSIZE = 512;
+    public static final short OP_RRQ = 1;
     public static final short OP_DAT = 3;
-    public static final int OP_ACK = 4;
-    public static final int OP_ERR = 5;
+
 
     public static void main(String[] args) throws SocketException {
-        System.out.println("Hello, World!");
+        if (args.length > 0) {
+            System.err.printf("usage: java %s\n", server.class.getCanonicalName());
+            System.exit(1);
+        }
         try {
             server ser = new server();
             ser.start();
@@ -40,15 +35,15 @@ public class server {
         while (true) {
            // send socket and buffer to a method that it will return ClientIPAdress
 
-            final InetSocketAddress clientAddress =   extractIPFromBuffer(socket, buffer);
+            InetSocketAddress clientAddress =   extractIPFromBuffer(socket, buffer);
             System.out.println(clientAddress); //127.0.0.1:56094
 
             // to hold file name
-            final StringBuffer holdFilename = new StringBuffer();
+             StringBuffer holdFilename = new StringBuffer();
 
             // create a new method to read the opcode. Note that the opcode returns a number between 1-2
-            // readOpcode method give the file name and return a number to indicate if it is a read or a write
-            final int  opCode = readOpcode(buffer,holdFilename);
+            // readOpcode method give the file name and return a number to indicate if it is read or write
+            int  opCode = readOpcode(buffer,holdFilename);
 
             new Thread(() -> {
                 try {
@@ -56,12 +51,12 @@ public class server {
                     DatagramSocket sendSocket = new DatagramSocket(0);
                     sendSocket.connect(clientAddress);
 
-                    if (opCode == OP_RREAD_REQUEST) {
+                    if (opCode == OP_RRQ) {
                         holdFilename.insert(0, READ_From_Folder);
                         String str = holdFilename.toString();
                         System.out.println("str = " + str);
 
-                        requestHandling(socket, str);
+                        requestHandling(sendSocket, str);
                     }
 
                     sendSocket.close();
@@ -107,7 +102,15 @@ public class server {
     }
 
     private void sending_Data(DatagramSocket socketSending, byte[] sendData, int blockNum) {
-        try {
+        try
+        {
+            if(sendData==null||sendData.length==0){
+                sending_ERROR(socketSending, 2, "Access violation.");
+                System.err.println("Access violation.. Sending error message.");
+                return;
+            }
+
+
             ByteBuffer bb = ByteBuffer.allocate(sendData.length + 4);
             bb.putShort(OP_DAT);
             bb.putShort((short) blockNum);
@@ -167,7 +170,7 @@ public class server {
         };
 
         // Now our creating method expressed as lambda will retun a string of th buffer you
-        // get from socket. Let's attached/ append it to stringBuffer
+        // get from socket. Attached/ append it to stringBuffer
 
         stringBuffer.append(createString.apply(buffer));
 
