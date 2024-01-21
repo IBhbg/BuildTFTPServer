@@ -1,4 +1,4 @@
-Compilation:
+#Submission by Ivan Huusein
 To compile all the Java files in the project, use the following command in the terminal:
 find . -name "*.java" > sources.txt && javac @sources.txt
 
